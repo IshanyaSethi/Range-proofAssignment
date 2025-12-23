@@ -1,0 +1,7 @@
+build/
+server/third_party/nanopb_src/.git/
+server/third_party/trezor-crypto/.git/
+client/node_modules/
+client/dist/
+client/.tsx-cache/
+

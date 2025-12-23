@@ -1,0 +1,81 @@
+syntax = "proto2";
+
+package secure_range_proof;
+
+import "nanopb.proto";
+
+enum MessageType {
+  MSG_TYPE_UNSPECIFIED = 0;
+  MSG_CLIENT_HELLO = 1;
+  MSG_SERVER_CHALLENGE = 2;
+  MSG_CLIENT_RESPONSE = 3;
+  MSG_AUTH_RESULT = 4;
+
+  MSG_RANGE_PROOF_REQUEST = 10;
+  MSG_RANGE_PROOF_RESULT = 11;
+
+  MSG_ERROR = 100;
+}
+
+message Envelope {
+  required MessageType type = 1;
+  required bytes payload = 2 [(nanopb).max_size = 2048];
+  optional uint32 request_id = 3;
+}
+
+message ClientHello {
+  required bytes serial_id = 1 [(nanopb).max_size = 64];
+  required bytes sig = 2 [(nanopb).max_size = 64, (nanopb).fixed_length = true]; // r||s (P1363)
+}
+
+message ServerChallenge {
+  required bytes nonce = 1 [(nanopb).max_size = 32, (nanopb).fixed_length = true];
+  required bytes server_sig = 2 [(nanopb).max_size = 64, (nanopb).fixed_length = true]; // r||s over sha256(serial||nonce)
+}
+
+message ClientResponse {
+  required bytes sig = 1 [(nanopb).max_size = 64, (nanopb).fixed_length = true]; // r||s over sha256(nonce)
+}
+
+message AuthResult {
+  required bool ok = 1;
+  optional string message = 2 [(nanopb).max_size = 128];
+}
+
+// Range proof request following the ECC commitment structure in the prompt.
+// All points are compressed SEC1 (33 bytes) over secp256k1.
+message RangeProofRequest {
+  required uint64 min = 1;
+  required uint64 max = 2;
+  required uint32 bitlen = 3;
+
+  // c1 = (b-x)·G - r·H
+  required bytes c1 = 4 [(nanopb).max_size = 33, (nanopb).fixed_length = true];
+  // c2 = (x-a)·G + r·H
+  required bytes c2 = 5 [(nanopb).max_size = 33, (nanopb).fixed_length = true];
+
+  // lower_commit[i] = (s_i^2)·G + (r_i)·H, sum == c2
+  repeated bytes lower_commit = 6 [
+    (nanopb).max_count = 4,
+    (nanopb).max_size = 33,
+    (nanopb).fixed_length = true
+  ];
+
+  // upper_commit[i] = (t_i^2)·G - (u_i)·H, sum == c1
+  repeated bytes upper_commit = 7 [
+    (nanopb).max_count = 4,
+    (nanopb).max_size = 33,
+    (nanopb).fixed_length = true
+  ];
+}
+
+message RangeProofResult {
+  required bool ok = 1;
+  optional string message = 2 [(nanopb).max_size = 128];
+}
+
+message Error {
+  required uint32 code = 1;
+  required string message = 2 [(nanopb).max_size = 256];
+}
+
