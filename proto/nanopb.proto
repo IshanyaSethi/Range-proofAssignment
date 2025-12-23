@@ -1,0 +1,26 @@
+// Minimal nanopb options definition used by this project.
+// (Matches nanopb's upstream file shape, but trimmed to what we need.)
+//
+// If you regenerate protobufs with upstream nanopb, you can replace this file.
+syntax = "proto2";
+
+import "google/protobuf/descriptor.proto";
+
+message NanopbFieldOptions {
+  optional int32 max_size = 1;
+  optional int32 max_count = 2;
+  optional bool fixed_length = 3;
+}
+
+message NanopbMessageOptions {
+  optional int32 max_size = 1;
+}
+
+extend google.protobuf.FieldOptions {
+  optional NanopbFieldOptions nanopb = 1010;
+}
+
+extend google.protobuf.MessageOptions {
+  optional NanopbMessageOptions nanopb_msgopt = 1011;
+}
+
