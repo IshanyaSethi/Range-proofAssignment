@@ -2,7 +2,10 @@ cmake_minimum_required(VERSION 3.20)
 
 project(secure_range_proof_server LANGUAGES C CXX)
 
-find_package(Boost REQUIRED COMPONENTS system)
+# Homebrew Boost installs a CMake package config (BoostConfig.cmake).
+# We use header-only Boost.Asio + header-only Boost.System to avoid requiring
+# a separate "boost_system" CMake component package on macOS/Homebrew.
+find_package(Boost REQUIRED CONFIG)
 
 # ---- nanopb runtime ----
 add_library(nanopb STATIC
@@ -70,10 +73,19 @@ add_executable(srp_server
 target_include_directories(srp_server PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
+target_compile_definitions(srp_server PRIVATE
+  BOOST_ERROR_CODE_HEADER_ONLY=1
+  BOOST_SYSTEM_NO_LIB=1
+)
 target_link_libraries(srp_server PRIVATE
-  Boost::system
   srpproto
   nanopb
   trezor_crypto_rng_override
 )
+
+if (TARGET Boost::headers)
+  target_link_libraries(srp_server PRIVATE Boost::headers)
+elseif(Boost_INCLUDE_DIRS)
+  target_include_directories(srp_server PRIVATE ${Boost_INCLUDE_DIRS})
+endif()
 
